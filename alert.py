@@ -10,7 +10,7 @@ class AlertHandler(MethodDispatcher):
     @tornado.web.asynchronous
     def siteDown(self, *args, **kwargs):
         response["status"] = 'sent'
-        response["sent_to"] = {'siren', 'userBrowser'}
+        response["sent_to"] = {}
 
         self._siren('500','6')
         self._userBrowser("Site is down!", "yellow")
@@ -19,20 +19,27 @@ class AlertHandler(MethodDispatcher):
         self.write(json_encode(response))
         self.finish()
 
+
     @tornado.web.asynchronous
     def newrelic(self, alert="", deployment=""):
         response["status"] = 'sent'
         response["sent_to"] = {}
 
+        def _severity(x):
+                return {
+                        "INFO":"green",
+                        "WARN":"yellow",
+                        "CRITICAL":"red",
+                }[x]
+
+        alert = json_decode(self.request.body)
+
         if deployment != "":
             self._userBrowser('deployment done, pay attention','yellow')
 
         if alert != "":
-            alert = json_decode(alert)
             self._siren('200','2')
-            self._userBrowser(alert['message'],'red')
-
-    	print alert
+            self._userBrowser(alert['details'],_severity(alert['severity']))
 
         self.finish()
 
@@ -47,6 +54,7 @@ class AlertHandler(MethodDispatcher):
         self.write(json_encode(response))
         self.finish()
 
+
     @tornado.web.asynchronous
     def beep(self, time='1000', repeat='1', *args, **kwargs):
         response["status"] = 'sent'
@@ -56,8 +64,6 @@ class AlertHandler(MethodDispatcher):
 
         self.write(json_encode(response))
         self.finish()
-
-
 
 
     def _siren(self, time='1000', repeat='1'):
